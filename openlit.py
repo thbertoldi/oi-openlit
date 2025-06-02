@@ -1,38 +1,60 @@
 """
-title: OpenLIT monitoring pipeline
-author: open-webui
-date: 2024-05-30
+title: SUSE AI Monitoring Pipeline
+author: Thiago Bertoldi (SUSE)
+date: 2025-05-30
 version: 1.0
-license: MIT
-description: A pipeline for monitoring open-webui with openlit.
+license: Apache 2.0
+description: A pipeline for monitoring Open WebUI with OpenLIT
 requirements: openlit==1.33.8, openai==1.61.1
 """
 
 from typing import List, Union, Generator, Iterator
-from schemas import OpenAIChatMessage
+from pydantic import Field, BaseModel
 from openai import OpenAI
 import openlit
 
 
 class Pipeline:
-    def __init__(self):
-        self.name = "Instrumented"
+    class Valves(BaseModel):
+        OTEL_ENDPOINT: str = Field(
+            default="http://opentelemetry-collector.observability.svc.cluster.local:4318",
+            description="Endpoint for OTEL Collector"
+        )
+        OTEL_SERVICE_NAME: str = Field(
+            default="Open WebUI",
+            description="Sets service.name resource attribute for OpenTelemetry"
+        )
+        OLLAMA_ENDPOINT: str = Field(
+            default="http://ollama.suse-private-ai.svc.cluster.local:11434/v1",
+            description="Endpoint for Ollama API"
+        )
+        OLLAMA_API_KEY: str = Field(
+            default="ignored",
+            description="Key for OpenAI compatible API"
+        )
+        MODEL: str = Field(
+            default="gemma:2b",
+            description="Sets the model in use"
+        )
         pass
+
+    def __init__(self):
+        self.name = "Instrumentation"
+        self.valves = self.Valves()
+        pass
+
+    def setup_openlit(self):
+        openlit.init(
+            otlp_endpoint=self.valves.OTEL_ENDPOINT,
+            disable_batch=True,
+            trace_content=True,
+            application_name=self.valves.OTEL_SERVICE_NAME,
+            collect_gpu_stats=False,
+        )
 
     async def on_startup(self):
         print(f"on_startup:{__name__}")
-
-        # Start openlit collecting metrics
-        OTEL_ENDPOINT = (
-            "http://opentelemetry-collector.observability.svc.cluster.local:4318"
-        )
-        openlit.init(
-            otlp_endpoint=OTEL_ENDPOINT,
-            disable_batch=True,
-            trace_content=True,
-            application_name="OI Pipeline",
-            collect_gpu_stats=False,
-        )
+        self.setup_openlit()
         pass
 
     async def on_shutdown(self):
@@ -45,12 +67,12 @@ class Pipeline:
         print(f"pipe:{__name__}")
 
         client = OpenAI(
-            base_url="http://ollama.suse-private-ai.svc.cluster.local:11434/v1",
-            api_key="token-abc123",  # ignored by Ollama
+            base_url=self.valves.OLLAMA_ENDPOINT,
+            api_key=self.valves.OLLAMA_API_KEY
         )
 
         completion = client.chat.completions.create(
-            model="gemma:2b",
+            model=self.valves.MODEL,
             messages=[{"role": "user", "content": user_message}],
         )
 
