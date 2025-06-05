@@ -129,6 +129,10 @@
             "promptPrice": 0.05,
             "completionPrice": 0.15
         },
+        "gemma": {
+            "promptPrice": 0.05,
+            "completionPrice": 0.15
+        },
         "gpt-4o": {
             "promptPrice": 0.0005,
             "completionPrice": 0.0015
