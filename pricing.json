@@ -125,11 +125,7 @@
         "nano": 0.00003333333
     },
     "chat": {
-        "gemma:2b": {
-            "promptPrice": 0.05,
-            "completionPrice": 0.15
-        },
-        "gemma": {
+        "gemma-2b": {
             "promptPrice": 0.05,
             "completionPrice": 0.15
         },
