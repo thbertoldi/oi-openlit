@@ -36,6 +36,10 @@ class Pipeline:
             default="gemma:2b",
             description="Sets the model in use"
         )
+        PRICING: str = Field(
+            default="https://raw.githubusercontent.com/thbertoldi/oi-openlit/refs/heads/main/pricing.json",
+            description="Pricing file"
+        )
         pass
 
     def __init__(self):
@@ -44,12 +48,15 @@ class Pipeline:
         pass
 
     def setup_openlit(self):
+        global __name__
+        __name__ = self.valves.MODEL
         openlit.init(
             otlp_endpoint=self.valves.OTEL_ENDPOINT,
             disable_batch=True,
             trace_content=True,
             application_name=self.valves.OTEL_SERVICE_NAME,
             collect_gpu_stats=False,
+            pricing_json=self.valves.PRICING,
         )
 
     async def on_startup(self):
